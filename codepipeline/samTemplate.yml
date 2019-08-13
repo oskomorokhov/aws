@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: >-
+  A simple backend with a RESTful API endpoint using Amazon API Gateway.
+Globals:
+  #https://github.com/awslabs/serverless-application-model/blob/develop/docs/globals.rst
+  Function:
+    Runtime: python3.6
+    MemorySize: 512
+    #VpcConfig:
+    #Tracing:
+    #AutoPublishAlias:
+    Environment:
+      #Variables:
+        #TABLE_NAME:
+          #Ref: Table
+
+Parameters:
+  Stage:
+    Type: String
+    AllowedValues:
+      - Dev
+      - Stage
+      - Prod
+    Default: Dev
+    Description: Stage that can be added to resource names
+
+Resources:
+  LambdaFunction1:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: lambda_function.lambda_handler
+      CodeUri: ./src/
+      AutoPublishAlias:
+          Ref: Stage
+      Description: >-
+        A simple backend with a RESTful API endpoint using Amazon API Gateway.
+      Timeout: 10
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+            RestApiId:
+                Ref: ApiGateway1
+  ApiGateway1:
+    Type: 'AWS::Serverless::Api'
+    Properties:
+        StageName:
+            Ref: Stage
+        DefinitionBody:
+            swagger: '2.0'
+            info:
+              title: "TestCodePipeLine"
+              version: "v0.1.0"
+            host: "https://example.com"
+            basePath: "/"
+            schemes:
+              - https
+            paths:
+              "/{proxy+}":
+                x-amazon-apigateway-any-method:
+                  x-amazon-apigateway-integration:
+                    # https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-control-access-using-iam-policies-to-invoke-api.html
+                    uri:
+                      Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction1.Alias}/invocations
+                    httpMethod: POST
+                    type: aws_proxy
+                  consumes:
+                    - application/json
+                  produces:
+                    - application/json
+                  parameters:
+                    - name: proxy
+                      in: path
+                      required: true
+                      type: string
+                  responses:
+                    {}
+Outputs:
+  ApiUrl:
+    Description: URL for application
+    Value: !Sub 'https://${ApiGateway1}.execute-api.${AWS::Region}.amazonaws.com/${Stage}'
+    Export:
+      Name: !Sub 'ApiUrl-${Stage}'

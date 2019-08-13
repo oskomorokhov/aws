@@ -1,0 +1,9 @@
+version: 0.0
+Resources:
+  - myLambdaFunction:
+      Type: AWS::Lambda::Function
+      Properties:
+        Name: "test-cicd-lambda"
+        Alias: "staging"
+        CurrentVersion: "1"
+        TargetVersion: "2"

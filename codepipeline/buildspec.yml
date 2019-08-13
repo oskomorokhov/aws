@@ -1,0 +1,47 @@
+version: 0.2
+
+#env:
+  #variables:
+      #key1: "value1"
+      #key2: "value2"
+  #parameter-store:
+      #key3: "value3"
+      #key4: "value4"
+
+phases:
+  install:
+    commands:
+      - echo Entered the install phase...
+      #- apt-get update -y
+      #- apt-get install -y maven
+    finally:
+      - echo This always runs even if the update or install command fails
+  pre_build:
+    commands:
+      - echo Entered the pre_build phase...
+      #- docker login –u User –p $LOGIN_PASSWORD
+      #- cat api-gw-swagger.yml >> samTemplate.yml
+      - cat samTemplate.yml
+    finally:
+      - echo This always runs even if the login command fails
+  build:
+    commands:
+      - echo Entered the build phase...
+      - echo Build started on `date`
+      - aws cloudformation package --template-file samTemplate.yml --s3-bucket $BUILD_OUTPUT_BUCKET --output-template-file outputSamTemplate.yml
+    finally:
+      - echo This always runs even if the install command fails
+  post_build:
+    commands:
+      - echo Entered the post_build phase...
+      - python src/test.py
+      - echo Build completed on `date`
+artifacts:
+  files:
+     - samTemplate.yml
+     - outputSamTemplate.yml
+  discard-paths: yes
+  base-directory: .
+#cache:
+  #paths:
+    # - paths
